@@ -4,7 +4,6 @@ import json
 from datetime import datetime, timedelta
 import pandas as pd
 import pytz
-import time
 
 st.set_page_config(
     page_title="SS14 Статистика серверов",
@@ -15,27 +14,27 @@ st.set_page_config(
 st.markdown("""
     <style>
         .metric-container {
-            padding: 5px;  /* Уменьшено с 8px */
+            padding: 5px;
             border-radius: 5px;
-            margin: 1px 0;  
+            margin: 1px 0;
             width: 100%;
-            min-height: 35px;  /* Уменьшено с 45px */
+            min-height: 35px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .metric-label {
-            font-size: 12px;  /* Уменьшено с 14px */
+            font-size: 12px;
             font-weight: bold;
         }
         .metric-value {
-            font-size: 16px;  /* Уменьшено с 18px */
+            font-size: 16px;
             font-weight: bold;
         }
         .countdown {
-            font-size: 14px;  /* Уменьшено с 16px */
-            margin-bottom: 10px;  /* Уменьшено с 15px */
-            padding: 5px;  /* Уменьшено с 8px */
+            font-size: 14px;
+            margin-bottom: 10px;
+            padding: 5px;
             background-color: #2b2b2b;
             border-radius: 5px;
             text-align: center;
@@ -106,16 +105,18 @@ def main():
     current_time = datetime.now()
     time_left = (st.session_state.next_update - current_time).total_seconds()
     
+    # Обновляем данные, если время вышло
     if time_left <= 0:
         st.session_state.last_update = datetime.now()
         st.session_state.next_update = datetime.now() + timedelta(seconds=10)
-        st.experimental_rerun()
+        st.session_state.stats = get_server_stats()
     
-    stats = get_server_stats()
+    stats = st.session_state.get('stats', get_server_stats())
     
     if stats:
         df = pd.DataFrame(stats)
         
+        # Создаем контейнер для таймера и метрик
         with st.container():
             st.markdown(f"""
                 <div class="countdown">
@@ -125,6 +126,7 @@ def main():
             
             st.write(f"Последнее обновление: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
             
+            # Отображаем метрики серверов
             for row in stats:
                 players = row['Игроки']
                 if players >= 300:
@@ -143,6 +145,7 @@ def main():
                     </div>
                 """, unsafe_allow_html=True)
         
+        # Отдельный контейнер для графиков и таблиц
         with st.container():
             st.subheader("График распределения игроков")
             st.bar_chart(
@@ -156,6 +159,13 @@ def main():
                 use_container_width=True,
                 hide_index=True
             )
+    
+    # Добавляем кнопку для ручного обновления
+    if st.button("Обновить сейчас"):
+        st.session_state.last_update = datetime.now()
+        st.session_state.next_update = datetime.now() + timedelta(seconds=10)
+        st.session_state.stats = get_server_stats()
+        st.experimental_rerun()
 
 if __name__ == '__main__':
     main()
