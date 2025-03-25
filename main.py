@@ -1,13 +1,10 @@
 import streamlit as st
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 import pandas as pd
 import pytz
 import time
-
-# Версия приложения
-VERSION = "1.4"
 
 st.set_page_config(
     page_title="SS14 Статистика серверов",
@@ -18,30 +15,22 @@ st.set_page_config(
 st.markdown("""
     <style>
         .metric-container {
-            padding: 5px;
+            padding: 5px;  /* Уменьшено с 8px */
             border-radius: 5px;
-            margin: 1px 0;
+            margin: 1px 0;  
             width: 100%;
-            min-height: 35px;
+            min-height: 35px;  /* Уменьшено с 45px */
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .metric-label {
-            font-size: 12px;
+            font-size: 12px;  /* Уменьшено с 14px */
             font-weight: bold;
         }
         .metric-value {
-            font-size: 16px;
+            font-size: 16px;  /* Уменьшено с 18px */
             font-weight: bold;
-        }
-        .countdown {
-            font-size: 14px;
-            margin-bottom: 10px;
-            padding: 5px;
-            background-color: #2b2b2b;
-            border-radius: 5px;
-            text-align: center;
         }
         .high-players {
             background-color: rgba(0, 255, 0, 0.2);
@@ -54,6 +43,18 @@ st.markdown("""
         }
         .very-low-players {
             background-color: black;
+        }
+        .highlight-high {
+            background-color: rgba(0, 255, 0, 0.5); /* Ярче для высоких игроков */
+        }
+        .highlight-medium {
+            background-color: rgba(255, 255, 0, 0.5); /* Ярче для средних игроков */
+        }
+        .highlight-low {
+            background-color: rgba(255, 0, 0, 0.5); /* Ярче для низких игроков */
+        }
+        .highlight-very-low {
+            background-color: rgba(128, 128, 128, 0.5); /* Ярче для очень низких игроков */
         }
     </style>
 """, unsafe_allow_html=True)
@@ -70,7 +71,7 @@ def get_server_stats():
         
         server_groups = {
             'Корвакс': ['Corvax'],
-            'Санрайз': ['РЫБЬЯ', 'LUST', 'SUNRISE'],
+            'Санрайз': ['РЫБЬЯ', 'LUST', 'SUNRISE', 'FIRE'],
             'Империал': ['Imperial'],
             'Спейс Сторис': ['Stories'],
             'Мёртвый Космос': ['МЁРТВЫЙ'],
@@ -94,73 +95,82 @@ def get_server_stats():
                 'Игроки': total_players
             })
         
-        return sorted(stats, key=lambda x: x['Игроки'], reverse=True)
+        return sorted(stats, key=lambda x: x['Игроки'], reverse=False)
     except Exception as e:
         st.error(f"Ошибка при получении данных: {e}")
         return []
 
 def main():
     st.title("🚀 Статистика серверов SS14")
-    st.caption(f"Версия {VERSION}")
     
-    # Инициализация или обновление данных
-    if 'last_update' not in st.session_state:
-        st.session_state.last_update = datetime.now()
-        st.session_state.stats = get_server_stats()
-        st.session_state.next_update = datetime.now() + timedelta(seconds=10)
+    data_container = st.empty()
     
-    # Рассчитываем оставшееся время
-    time_left = (st.session_state.next_update - datetime.now()).total_seconds()
-    
-    # Если время вышло, обновляем данные
-    if time_left <= 0:
-        st.session_state.last_update = datetime.now()
-        st.session_state.stats = get_server_stats()
-        st.session_state.next_update = datetime.now() + timedelta(seconds=10)
-        time_left = 10
-    
-    # Отображаем таймер
-    st.markdown(f"""
-        <div class="countdown">
-            Следующее обновление через: {max(0, int(time_left))} секунд
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.write(f"Последнее обновление: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
-    
-    # Отображаем статистику серверов
-    stats = st.session_state.stats
-    if stats:
-        df = pd.DataFrame(stats)
+    previous_stats = {} 
+
+    while True:
+        stats = get_server_stats()
         
-        for row in stats:
-            players = row['Игроки']
-            if players >= 300:
-                style_class = "high-players"
-            elif players >= 100:
-                style_class = "medium-players"
-            elif players < 20:
-                style_class = "very-low-players"
-            else:
-                style_class = "low-players"
-            
-            st.markdown(f"""
-                <div class="metric-container {style_class}">
-                    <div class="metric-label">{row['Сервер']}</div>
-                    <div class="metric-value">{players}</div>
-                </div>
-            """, unsafe_allow_html=True)
+        if stats:
+            df = pd.DataFrame(stats)
+            with data_container.container():
+                st.subheader("Данные о серверах")
+                data_display = [] 
+                
+                for row in reversed(stats):
+                    players = row['Игроки']
+                    server_name = row['Сервер']
+                    style_class = ""
+                    highlight_class = ""
+                    
+                    if server_name in previous_stats:
+                        if previous_stats[server_name] != players:
+                            if players >= 300:
+                                highlight_class = "highlight-high"
+                            elif players >= 100:
+                                highlight_class = "highlight-medium"
+                            elif players < 20:
+                                highlight_class = "highlight-very-low"
+                            else:
+                                highlight_class = "highlight-low"
+                    
+                    # Обновляем предыдущие значения
+                    previous_stats[server_name] = players
+                    
+                    # Определяем стиль в зависимости от количества игроков
+                    if style_class == "":
+                        if players >= 300:
+                            style_class = "high-players"
+                        elif players >= 100:
+                            style_class = "medium-players"
+                        elif players < 20:
+                            style_class = "very-low-players"
+                        else:
+                            style_class = "low-players"
+                    
+                    # Добавляем данные в список для отображения
+                    data_display.append(f"""
+                        <div class="metric-container {highlight_class} {style_class}">
+                            <div class="metric-label">{server_name}</div>
+                            <div class="metric-value">{players}</div>
+                        </div>
+                    """)
+                
+                st.markdown("".join(data_display), unsafe_allow_html=True)
+                
+                st.subheader("График распределения игроков")
+                st.bar_chart(
+                    df.set_index('Сервер')['Игроки'],
+                    use_container_width=True
+                )
+                
+                st.subheader("Детальная информация")
+                st.dataframe(
+                    df,
+                    use_container_width=True,
+                    hide_index=True
+                )
         
-        with st.container():
-            st.subheader("График распределения игроков")
-            st.bar_chart(df.set_index('Сервер')['Игроки'], use_container_width=True)
-            
-            st.subheader("Детальная информация")
-            st.dataframe(df, use_container_width=True, hide_index=True)
-    
-    # Автоматический перезапуск через 1 секунду
-    time.sleep(1)
-    st.experimental_rerun()
+        time.sleep(3) 
 
 if __name__ == '__main__':
     main()
