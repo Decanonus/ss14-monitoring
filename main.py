@@ -90,7 +90,7 @@ def get_server_stats():
                 'Игроки': total_players
             })
         
-        return sorted(stats, key=lambda x: x['Игроки'], reverse=False)  # Изменено на reverse=False
+        return sorted(stats, key=lambda x: x['Игроки'], reverse=False)
     except Exception as e:
         st.error(f"Ошибка при получении данных: {e}")
         return []
@@ -125,8 +125,8 @@ def main():
             
             st.write(f"Последнее обновление: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
             
-            # Отображаем метрики серверов
-            for row in stats:  # Убрано reversed()
+            # Отображаем метрики серверов в правильном порядке
+            for row in stats:
                 players = row['Игроки']
                 if players >= 300:
                     style_class = "high-players"
