@@ -2,11 +2,8 @@ import streamlit as st
 import requests
 import json
 from datetime import datetime
-import time
 import pandas as pd
 import pytz
-import schedule
-import os
 
 st.set_page_config(
     page_title="SS14 Статистика серверов",
@@ -86,112 +83,57 @@ def get_server_stats():
         st.error(f"Ошибка при получении данных: {e}")
         return []
 
-def save_daily_stats(stats):
-    current_time = get_moscow_time()
-    
-    if not os.path.exists('daily_stats'):
-        os.makedirs('daily_stats')
-    
-    filename = f"daily_stats/{current_time.strftime('%Y-%m')}.csv"
-    
-    data = {
-        'date': current_time.strftime('%Y-%m-%d'),
-        'time': current_time.strftime('%H:%M:%S'),
-        'timestamp': current_time.timestamp()
-    }
-    
-    for stat in stats:
-        data[stat['Сервер']] = stat['Игроки']
-    
-    df_new = pd.DataFrame([data])
-    
-    if os.path.exists(filename):
-        df_existing = pd.read_csv(filename)
-        df = pd.concat([df_existing, df_new], ignore_index=True)
-    else:
-        df = df_new
-    
-
-    df.to_csv(filename, index=False)
-    print(f"Статистика сохранена в {filename}")
-
-def daily_record():
-    stats = get_server_stats()
-    if stats:
-        save_daily_stats(stats)
-
-def setup_scheduler():
-    moscow_tz = pytz.timezone('Europe/Moscow')
-    
-    def is_time_to_run():
-        moscow_time = datetime.now(moscow_tz)
-        return moscow_time.hour == 20 and moscow_time.minute == 0
-    
-    schedule.every().day.at("20:00").do(daily_record)
-    
-    while True:
-        if is_time_to_run():
-            daily_record()
-            time.sleep(60) 
-        schedule.run_pending()
-        time.sleep(30) 
-
 def main():
     st.title("🚀 Статистика серверов SS14")
     
-    import threading
-    scheduler_thread = threading.Thread(target=setup_scheduler, daemon=True)
-    scheduler_thread.start()
+    if st.button('Обновить данные'):
+        st.experimental_rerun()
     
-    placeholder = st.empty()
-    countdown_placeholder = st.empty()
+    stats = get_server_stats()
     
-    while True:
-        for seconds in range(10, 0, -1):
-            countdown_placeholder.markdown(f"Следующее обновление через {seconds} секунд...")
-            time.sleep(1)
+    if stats:
+        df = pd.DataFrame(stats)
         
-        stats = get_server_stats()
+        current_time = get_moscow_time()
+        st.write(f"Последнее обновление: {current_time.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
         
-        with placeholder.container():
-            if stats:
-                df = pd.DataFrame(stats)
+        cols = st.columns(5)
+        
+        for idx, row in enumerate(stats):
+            with cols[idx % 5]:
+                players = row['Игроки']
+                if players >= 300:
+                    style_class = "high-players"
+                elif players >= 100:
+                    style_class = "medium-players"
+                elif players < 20:
+                    style_class = "very-low-players"
+                else:
+                    style_class = "low-players"
                 
-                current_time = get_moscow_time()
-                st.write(f"Последнее обновление: {current_time.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
-                
-                for row in stats:
-                    players = row['Игроки']
-                    if players >= 300:
-                        style_class = "high-players"
-                    elif players >= 100:
-                        style_class = "medium-players"
-                    elif players < 20:
-                        style_class = "very-low-players"
-                    else:
-                        style_class = "low-players"
-                    
-                    st.markdown(f"""
-                        <div class="{style_class}">
-                            <div data-testid="metric-container">
-                                <label>{row['Сервер']}</label>
-                                <div data-testid="stMetricValue" style="font-size: 24px;">{players}</div>
-                            </div>
+                st.markdown(f"""
+                    <div class="{style_class}">
+                        <div data-testid="metric-container">
+                            <label>{row['Сервер']}</label>
+                            <div data-testid="stMetricValue" style="font-size: 24px;">{players}</div>
                         </div>
-                    """, unsafe_allow_html=True)
-                
-                st.subheader("График распределения игроков")
-                fig = st.bar_chart(
-                    df.set_index('Сервер')['Игроки'],
-                    use_container_width=True
-                )
-                
-                st.subheader("Детальная информация")
-                st.dataframe(
-                    df,
-                    use_container_width=True,
-                    hide_index=True
-                )
+                    </div>
+                """, unsafe_allow_html=True)
+        
+        st.subheader("График распределения игроков")
+        fig = st.bar_chart(
+            df.set_index('Сервер')['Игроки'],
+            use_container_width=True
+        )
+        
+        st.subheader("Детальная информация")
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        st.experimental_rerun()
 
 if __name__ == '__main__':
     main()
