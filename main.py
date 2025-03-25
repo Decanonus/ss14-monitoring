@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import pandas as pd
 import pytz
+import time
 
 st.set_page_config(
     page_title="SS14 Статистика серверов",
@@ -62,12 +63,13 @@ def get_moscow_time():
     moscow_tz = pytz.timezone('Europe/Moscow')
     return datetime.now(moscow_tz)
 
-@st.cache_data(ttl=10) 
+@st.cache_data(ttl=10)  # Кеширование на 10 секунд
 def get_server_stats():
     url = 'https://hub.spacestation14.com/api/servers'
     try:
-        r = requests.get(url)
-        jsonn = json.loads(r.text)
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        json_data = response.json()
         
         server_groups = {
             'Корвакс': ['Corvax'],
@@ -85,10 +87,10 @@ def get_server_stats():
         stats = []
         for group_name, keywords in server_groups.items():
             total_players = sum(
-                servers['statusData']['players']
-                for servers in jsonn
+                server['statusData']['players']
+                for server in json_data
                 for keyword in keywords
-                if keyword in servers['statusData']['name']
+                if keyword in server['statusData']['name']
             )
             stats.append({
                 'Сервер': group_name,
@@ -96,78 +98,78 @@ def get_server_stats():
             })
         
         return sorted(stats, key=lambda x: x['Игроки'], reverse=False)
-    except Exception as e:
-        st.error(f"Ошибка при получении данных: {e}")
-        return []
+    
+    except requests.exceptions.RequestException as e:
+        st.error(f"Ошибка соединения с API: {str(e)}")
+        return None
+    except json.JSONDecodeError:
+        st.error("Ошибка обработки данных API")
+        return None
+
+def display_server_stats(stats, previous_stats):
+    if stats is None:
+        st.warning("Данные временно недоступны")
+        return previous_stats
+    
+    df = pd.DataFrame(stats)
+    
+    st.subheader("Данные о серверах")
+    data_display = []
+    
+    current_stats = {}
+    for row in reversed(stats):
+        players = row['Игроки']
+        server_name = row['Сервер']
+        current_stats[server_name] = players
+        
+        # Определение стилей
+        style_class = (
+            "high-players" if players >= 300 else
+            "medium-players" if players >= 100 else
+            "very-low-players" if players < 20 else
+            "low-players"
+        )
+        
+        highlight_class = (
+            "highlight-high" if (server_name in previous_stats and players >= 300 and players != previous_stats[server_name]) else
+            "highlight-medium" if (server_name in previous_stats and players >= 100 and players != previous_stats[server_name]) else
+            "highlight-low" if (server_name in previous_stats and 20 <= players < 100 and players != previous_stats[server_name]) else
+            "highlight-very-low" if (server_name in previous_stats and players < 20 and players != previous_stats[server_name]) else
+            ""
+        )
+        
+        data_display.append(f"""
+            <div class="metric-container {highlight_class} {style_class}">
+                <div class="metric-label">{server_name}</div>
+                <div class="metric-value">{players}</div>
+            </div>
+        """)
+    
+    st.markdown("".join(data_display), unsafe_allow_html=True)
+    
+    st.subheader("График распределения игроков")
+    st.bar_chart(df.set_index('Сервер')['Игроки'])
+    
+    st.subheader("Детальная информация")
+    st.dataframe(df, hide_index=True)
+    
+    return current_stats
 
 def main():
     st.title("🚀 Статистика серверов SS14")
-    
-    st.autorefresh(interval=3000, key="auto_refresh")  
+
+    if 'previous_stats' not in st.session_state:
+        st.session_state.previous_stats = {}
 
     stats = get_server_stats()
-    previous_stats = st.session_state.get("previous_stats", {}) 
     
-    if stats:
-        df = pd.DataFrame(stats)
-        
-        st.subheader("Данные о серверах")
-        data_display = [] 
-        
-        for row in reversed(stats):
-            players = row['Игроки']
-            server_name = row['Сервер']
-            style_class = ""
-            highlight_class = ""
-            
-            if server_name in previous_stats:
-                if previous_stats[server_name] != players:
-                    if players >= 300:
-                        highlight_class = "highlight-high"
-                    elif players >= 100:
-                        highlight_class = "highlight-medium"
-                    elif players < 20:
-                        highlight_class = "highlight-very-low"
-                    else:
-                        highlight_class = "highlight-low"
-            
-            # Обновляем предыдущие значения
-            previous_stats[server_name] = players
-            
-            # Определяем стиль в зависимости от количества игроков
-            if style_class == "":
-                if players >= 300:
-                    style_class = "high-players"
-                elif players >= 100:
-                    style_class = "medium-players"
-                elif players < 20:
-                    style_class = "very-low-players"
-                else:
-                    style_class = "low-players"
-            
-            data_display.append(f"""
-                <div class="metric-container {highlight_class} {style_class}">
-                    <div class="metric-label">{server_name}</div>
-                    <div class="metric-value">{players}</div>
-                </div>
-            """)
-        
-        st.markdown("".join(data_display), unsafe_allow_html=True)
-        
-        st.subheader("График распределения игроков")
-        st.bar_chart(
-            df.set_index('Сервер')['Игроки'],
-            use_container_width=True
-        )
-        
-        st.subheader("Детальная информация")
-        st.dataframe(
-            df,
-            use_container_width=True,
-            hide_index=True
-        )
+    st.session_state.previous_stats = display_server_stats(
+        stats,
+        st.session_state.previous_stats
+    )
     
-    st.session_state.previous_stats = previous_stats
+    time.sleep(3)
+    st.rerun()
 
 if __name__ == '__main__':
     main()
