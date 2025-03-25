@@ -4,9 +4,10 @@ import json
 from datetime import datetime, timedelta
 import pandas as pd
 import pytz
+import time
 
 # Версия приложения
-VERSION = "1.3"
+VERSION = "1.4"
 
 st.set_page_config(
     page_title="SS14 Статистика серверов",
@@ -93,81 +94,73 @@ def get_server_stats():
                 'Игроки': total_players
             })
         
-        return sorted(stats, key=lambda x: x['Игроки'], reverse=True)  # Сортировка по убыванию
+        return sorted(stats, key=lambda x: x['Игроки'], reverse=True)
     except Exception as e:
         st.error(f"Ошибка при получении данных: {e}")
         return []
 
 def main():
     st.title("🚀 Статистика серверов SS14")
-    st.caption(f"Версия {VERSION}")  # Отображение версии
+    st.caption(f"Версия {VERSION}")
     
-    current_time = datetime.now()
-    
-    # Инициализация состояния сессии
+    # Инициализация или обновление данных
     if 'last_update' not in st.session_state:
-        st.session_state.last_update = current_time
-        st.session_state.next_update = current_time + timedelta(seconds=10)
+        st.session_state.last_update = datetime.now()
         st.session_state.stats = get_server_stats()
+        st.session_state.next_update = datetime.now() + timedelta(seconds=10)
     
-    # Вычисляем оставшееся время
-    time_left = (st.session_state.next_update - current_time).total_seconds()
+    # Рассчитываем оставшееся время
+    time_left = (st.session_state.next_update - datetime.now()).total_seconds()
     
-    # Обновляем данные, если время вышло
+    # Если время вышло, обновляем данные
     if time_left <= 0:
-        st.session_state.last_update = current_time
-        st.session_state.next_update = current_time + timedelta(seconds=10)
+        st.session_state.last_update = datetime.now()
         st.session_state.stats = get_server_stats()
-        time_left = 10  # Сбрасываем таймер
+        st.session_state.next_update = datetime.now() + timedelta(seconds=10)
+        time_left = 10
     
-    stats = st.session_state.get('stats', [])
+    # Отображаем таймер
+    st.markdown(f"""
+        <div class="countdown">
+            Следующее обновление через: {max(0, int(time_left))} секунд
+        </div>
+    """, unsafe_allow_html=True)
     
+    st.write(f"Последнее обновление: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
+    
+    # Отображаем статистику серверов
+    stats = st.session_state.stats
     if stats:
         df = pd.DataFrame(stats)
         
-        # Создаем контейнер для таймера и метрик
-        with st.container():
+        for row in stats:
+            players = row['Игроки']
+            if players >= 300:
+                style_class = "high-players"
+            elif players >= 100:
+                style_class = "medium-players"
+            elif players < 20:
+                style_class = "very-low-players"
+            else:
+                style_class = "low-players"
+            
             st.markdown(f"""
-                <div class="countdown">
-                    Следующее обновление через: {max(0, int(time_left))} секунд
+                <div class="metric-container {style_class}">
+                    <div class="metric-label">{row['Сервер']}</div>
+                    <div class="metric-value">{players}</div>
                 </div>
             """, unsafe_allow_html=True)
-            
-            st.write(f"Последнее обновление: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
-            
-            # Отображаем метрики серверов в порядке убывания
-            for row in stats:
-                players = row['Игроки']
-                if players >= 300:
-                    style_class = "high-players"
-                elif players >= 100:
-                    style_class = "medium-players"
-                elif players < 20:
-                    style_class = "very-low-players"
-                else:
-                    style_class = "low-players"
-                
-                st.markdown(f"""
-                    <div class="metric-container {style_class}">
-                        <div class="metric-label">{row['Сервер']}</div>
-                        <div class="metric-value">{players}</div>
-                    </div>
-                """, unsafe_allow_html=True)
         
-        # Отдельный контейнер для графиков и таблиц
         with st.container():
             st.subheader("График распределения игроков")
-            st.bar_chart(
-                df.set_index('Сервер')['Игроки'],
-                use_container_width=True
-            )
+            st.bar_chart(df.set_index('Сервер')['Игроки'], use_container_width=True)
             
             st.subheader("Детальная информация")
-            st.dataframe(
-                df,
-                use_container_width=True,
-                hide_index=True
-            )
+            st.dataframe(df, use_container_width=True, hide_index=True)
+    
+    # Автоматический перезапуск через 1 секунду
+    time.sleep(1)
+    st.experimental_rerun()
 
 if __name__ == '__main__':
     main()
