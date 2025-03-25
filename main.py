@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 import pandas as pd
 import pytz
 
+# Версия приложения
+VERSION = "1.2"
+
 st.set_page_config(
     page_title="SS14 Статистика серверов",
     page_icon="🚀",
@@ -90,13 +93,14 @@ def get_server_stats():
                 'Игроки': total_players
             })
         
-        return sorted(stats, key=lambda x: x['Игроки'], reverse=False)
+        return sorted(stats, key=lambda x: x['Игроки'], reverse=True)  # Изменено на reverse=True
     except Exception as e:
         st.error(f"Ошибка при получении данных: {e}")
         return []
 
 def main():
     st.title("🚀 Статистика серверов SS14")
+    st.caption(f"Версия {VERSION}")  # Отображение версии
     
     if 'last_update' not in st.session_state:
         st.session_state.last_update = datetime.now()
@@ -126,8 +130,8 @@ def main():
             
             st.write(f"Последнее обновление: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
             
-            # Отображаем метрики серверов
-            for row in stats:
+            # Отображаем метрики серверов в правильном порядке
+            for row in reversed(stats):  # Используем reversed для отображения снизу вверх
                 players = row['Игроки']
                 if players >= 300:
                     style_class = "high-players"
