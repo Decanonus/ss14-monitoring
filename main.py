@@ -13,19 +13,11 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-        .stMetric {
-            background-color: #2b2b2b;
+        .metric-container {
             padding: 10px;
             border-radius: 5px;
-            margin-bottom: 5px;
-            max-width: 200px;
-        }
-        .stMetric:hover {
-            background-color: #3b3b3b;
-        }
-        [data-testid="metric-container"] {
-            padding: 10px;
-            border-radius: 5px;
+            margin: 5px 0;
+            width: 150px;
         }
         .high-players {
             background-color: rgba(0, 255, 0, 0.2);
@@ -78,16 +70,13 @@ def get_server_stats():
                 'Игроки': total_players
             })
         
-        return sorted(stats, key=lambda x: x['Игроки'], reverse=True)
+        return sorted(stats, key=lambda x: x['Игроки'], reverse=False)
     except Exception as e:
         st.error(f"Ошибка при получении данных: {e}")
         return []
 
 def main():
     st.title("🚀 Статистика серверов SS14")
-    
-    if st.button('Обновить данные'):
-        st.experimental_rerun()
     
     stats = get_server_stats()
     
@@ -97,31 +86,28 @@ def main():
         current_time = get_moscow_time()
         st.write(f"Последнее обновление: {current_time.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
         
-        cols = st.columns(5)
-        
-        for idx, row in enumerate(stats):
-            with cols[idx % 5]:
-                players = row['Игроки']
-                if players >= 300:
-                    style_class = "high-players"
-                elif players >= 100:
-                    style_class = "medium-players"
-                elif players < 20:
-                    style_class = "very-low-players"
-                else:
-                    style_class = "low-players"
-                
-                st.markdown(f"""
-                    <div class="{style_class}">
-                        <div data-testid="metric-container">
-                            <label>{row['Сервер']}</label>
-                            <div data-testid="stMetricValue" style="font-size: 24px;">{players}</div>
-                        </div>
+        for row in stats:
+            players = row['Игроки']
+            if players >= 300:
+                style_class = "high-players"
+            elif players >= 100:
+                style_class = "medium-players"
+            elif players < 20:
+                style_class = "very-low-players"
+            else:
+                style_class = "low-players"
+            
+            st.markdown(f"""
+                <div class="metric-container {style_class}">
+                    <div>
+                        <label>{row['Сервер']}</label>
+                        <div style="font-size: 20px;">{players}</div>
                     </div>
-                """, unsafe_allow_html=True)
+                </div>
+            """, unsafe_allow_html=True)
         
         st.subheader("График распределения игроков")
-        fig = st.bar_chart(
+        st.bar_chart(
             df.set_index('Сервер')['Игроки'],
             use_container_width=True
         )
@@ -132,8 +118,6 @@ def main():
             use_container_width=True,
             hide_index=True
         )
-        
-        st.experimental_rerun()
 
 if __name__ == '__main__':
     main()
