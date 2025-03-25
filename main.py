@@ -6,7 +6,7 @@ import pandas as pd
 import pytz
 
 # Версия приложения
-VERSION = "1.2"
+VERSION = "1.3"
 
 st.set_page_config(
     page_title="SS14 Статистика серверов",
@@ -93,7 +93,7 @@ def get_server_stats():
                 'Игроки': total_players
             })
         
-        return sorted(stats, key=lambda x: x['Игроки'], reverse=False)  # Сортировка по возрастанию
+        return sorted(stats, key=lambda x: x['Игроки'], reverse=True)  # Сортировка по убыванию
     except Exception as e:
         st.error(f"Ошибка при получении данных: {e}")
         return []
@@ -102,20 +102,25 @@ def main():
     st.title("🚀 Статистика серверов SS14")
     st.caption(f"Версия {VERSION}")  # Отображение версии
     
-    if 'last_update' not in st.session_state:
-        st.session_state.last_update = datetime.now()
-        st.session_state.next_update = datetime.now() + timedelta(seconds=10)
-    
     current_time = datetime.now()
+    
+    # Инициализация состояния сессии
+    if 'last_update' not in st.session_state:
+        st.session_state.last_update = current_time
+        st.session_state.next_update = current_time + timedelta(seconds=10)
+        st.session_state.stats = get_server_stats()
+    
+    # Вычисляем оставшееся время
     time_left = (st.session_state.next_update - current_time).total_seconds()
     
     # Обновляем данные, если время вышло
     if time_left <= 0:
-        st.session_state.last_update = datetime.now()
-        st.session_state.next_update = datetime.now() + timedelta(seconds=10)
+        st.session_state.last_update = current_time
+        st.session_state.next_update = current_time + timedelta(seconds=10)
         st.session_state.stats = get_server_stats()
+        time_left = 10  # Сбрасываем таймер
     
-    stats = st.session_state.get('stats', get_server_stats())
+    stats = st.session_state.get('stats', [])
     
     if stats:
         df = pd.DataFrame(stats)
@@ -130,8 +135,8 @@ def main():
             
             st.write(f"Последнее обновление: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
             
-            # Отображаем метрики серверов в правильном порядке
-            for row in stats:  # Отображаем в порядке возрастания
+            # Отображаем метрики серверов в порядке убывания
+            for row in stats:
                 players = row['Игроки']
                 if players >= 300:
                     style_class = "high-players"
@@ -163,13 +168,6 @@ def main():
                 use_container_width=True,
                 hide_index=True
             )
-    
-    # Добавляем кнопку для ручного обновления
-    if st.button("Обновить сейчас"):
-        st.session_state.last_update = datetime.now()
-        st.session_state.next_update = datetime.now() + timedelta(seconds=10)
-        st.session_state.stats = get_server_stats()
-        st.experimental_rerun()
 
 if __name__ == '__main__':
     main()
