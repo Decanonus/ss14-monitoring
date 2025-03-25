@@ -4,7 +4,6 @@ import json
 from datetime import datetime, timedelta
 import pandas as pd
 import pytz
-import time
 
 st.set_page_config(
     page_title="SS14 Статистика серверов",
@@ -91,7 +90,7 @@ def get_server_stats():
                 'Игроки': total_players
             })
         
-        return sorted(stats, key=lambda x: x['Игроки'], reverse=True)
+        return sorted(stats, key=lambda x: x['Игроки'], reverse=False)  # Изменено на reverse=False
     except Exception as e:
         st.error(f"Ошибка при получении данных: {e}")
         return []
@@ -120,14 +119,14 @@ def main():
         with st.container():
             st.markdown(f"""
                 <div class="countdown">
-                    Следующее обновление через: {int(time_left)} секунд
+                    Следующее обновление через: {max(0, int(time_left))} секунд
                 </div>
             """, unsafe_allow_html=True)
             
             st.write(f"Последнее обновление: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
             
             # Отображаем метрики серверов
-            for row in reversed(stats):
+            for row in stats:  # Убрано reversed()
                 players = row['Игроки']
                 if players >= 300:
                     style_class = "high-players"
