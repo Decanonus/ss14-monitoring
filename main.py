@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timedelta
 import pandas as pd
 import pytz
+import time
 
 st.set_page_config(
     page_title="SS14 Статистика серверов",
@@ -105,12 +106,13 @@ def main():
     current_time = datetime.now()
     time_left = (st.session_state.next_update - current_time).total_seconds()
     
+    # Обновляем данные, если время вышло
     if time_left <= 0:
         st.session_state.last_update = datetime.now()
         st.session_state.next_update = datetime.now() + timedelta(seconds=10)
-        st.experimental_rerun()
+        st.session_state.stats = get_server_stats()
     
-    stats = get_server_stats()
+    stats = st.session_state.get('stats', get_server_stats())
     
     if stats:
         df = pd.DataFrame(stats)
@@ -125,7 +127,7 @@ def main():
             
             st.write(f"Последнее обновление: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} (МСК)")
             
-            # Отображаем метрики серверов в правильном порядке
+            # Отображаем метрики серверов
             for row in stats:
                 players = row['Игроки']
                 if players >= 300:
@@ -158,6 +160,10 @@ def main():
                 use_container_width=True,
                 hide_index=True
             )
+    
+    # Добавляем задержку для обновления страницы
+    time.sleep(1)
+    st.experimental_rerun()
 
 if __name__ == '__main__':
     main()
