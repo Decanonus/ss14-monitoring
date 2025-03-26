@@ -52,9 +52,9 @@ def get_server_stats():
 
 def plot_pie_chart(stats):
     plt.figure(figsize=(10, 5))
-    plt.clf()  # Очищаем предыдущий график
+    plt.clf()  
 
-    # Устанавливаем темную тему
+
     plt.style.use('dark_background')
 
     # Данные для кругового графика
@@ -62,11 +62,11 @@ def plot_pie_chart(stats):
     sizes = [row['Игроки'] for row in stats]
     colors = ['#ff9999','#66b3ff','#99ff99','#ffcc99','#c2c2f0','#ffb3e6','#c2f0c2','#ffccf2','#ffb3b3']
     
-    # Создаем круговой график
+
     plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=140)
-    plt.axis('equal')  # Рисуем круг
+    plt.axis('equal')  
     plt.title("Распределение игроков на серверах")
-    st.pyplot(plt)  # Отображаем график в Streamlit
+    st.pyplot(plt) 
 
 def main():
     st.title("🚀 Статистика серверов SS14")
@@ -113,9 +113,9 @@ def main():
                 st.session_state.previous_stats = current_stats
 
                 st.subheader("График распределения игроков")
-                plot_pie_chart(stats)  # Отображаем круговой график
+                plot_pie_chart(stats)  
 
-        time.sleep(3)  # Задержка перед следующим обновлением
+        time.sleep(1.5)  
 
 if __name__ == '__main__':
     main()
