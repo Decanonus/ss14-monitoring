@@ -3,7 +3,6 @@ import requests
 import json
 import pandas as pd
 import time
-import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="SS14 Статистика серверов", page_icon="🚀", layout="centered")
 
@@ -50,24 +49,6 @@ def get_server_stats():
     except:
         return None
 
-def plot_pie_chart(stats):
-    plt.figure(figsize=(10, 5))
-    plt.clf()  
-
-
-    plt.style.use('dark_background')
-
-    # Данные для кругового графика
-    labels = [row['Сервер'] for row in stats]
-    sizes = [row['Игроки'] for row in stats]
-    colors = ['#ff9999','#66b3ff','#99ff99','#ffcc99','#c2c2f0','#ffb3e6','#c2f0c2','#ffccf2','#ffb3b3']
-    
-
-    plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=140)
-    plt.axis('equal')  
-    plt.title("Распределение игроков на серверах")
-    st.pyplot(plt) 
-
 def main():
     st.title("🚀 Статистика серверов SS14")
 
@@ -112,10 +93,7 @@ def main():
                 
                 st.session_state.previous_stats = current_stats
 
-                st.subheader("График распределения игроков")
-                plot_pie_chart(stats)  
-
-        time.sleep(1.5)  
+        time.sleep(1.4)
 
 if __name__ == '__main__':
     main()
