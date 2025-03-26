@@ -3,8 +3,9 @@ import requests
 import json
 import pandas as pd
 import time
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="SS14 Статистика серверов", page_icon="🚀", layout="wide")
+st.set_page_config(page_title="SS14 Статистика серверов", page_icon="🚀", layout="centered")
 
 st.markdown("""<style>
     .metric-container {padding:5px;border-radius:5px;margin:1px 0;width:100%;min-height:35px;display:flex;justify-content:space-between;align-items:center;}
@@ -30,7 +31,7 @@ def get_server_stats():
             'Корвакс': ['Corvax'], 'Санрайз': ['РЫБЬЯ','LUST','SUNRISE','FIRE'],
             'Империал': ['Imperial'], 'Спейс Сторис': ['Stories'],
             'Мёртвый Космос': ['МЁРТВЫЙ'], 'Резерв': ['Reserve'],
-            'Виктория': ['Victoria'], 'СС220': ['SS220'],
+            'Вайт Дрим': ['Giedi'], 'СС220': ['SS220'],
             'Время Приключений': ['Время']
         }
 
@@ -49,6 +50,24 @@ def get_server_stats():
     except:
         return None
 
+def plot_pie_chart(stats):
+    plt.figure(figsize=(10, 5))
+    plt.clf()  # Очищаем предыдущий график
+
+    # Устанавливаем темную тему
+    plt.style.use('dark_background')
+
+    # Данные для кругового графика
+    labels = [row['Сервер'] for row in stats]
+    sizes = [row['Игроки'] for row in stats]
+    colors = ['#ff9999','#66b3ff','#99ff99','#ffcc99','#c2c2f0','#ffb3e6','#c2f0c2','#ffccf2','#ffb3b3']
+    
+    # Создаем круговой график
+    plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=140)
+    plt.axis('equal')  # Рисуем круг
+    plt.title("Распределение игроков на серверах")
+    st.pyplot(plt)  # Отображаем график в Streamlit
+
 def main():
     st.title("🚀 Статистика серверов SS14")
 
@@ -56,8 +75,6 @@ def main():
         st.session_state.previous_stats = {}
 
     stats_container = st.empty()
-    chart_container = st.empty()
-    table_container = st.empty()
 
     while True:
         stats = get_server_stats()
@@ -95,18 +112,10 @@ def main():
                 
                 st.session_state.previous_stats = current_stats
 
-        with chart_container.container():
-            if stats:
-                df = pd.DataFrame(stats)
                 st.subheader("График распределения игроков")
-                st.bar_chart(df.set_index('Сервер')['Игроки'])
+                plot_pie_chart(stats)  # Отображаем круговой график
 
-        with table_container.container():
-            if stats:
-                st.subheader("Детальная информация")
-                st.dataframe(pd.DataFrame(stats), hide_index=True)
-
-        time.sleep(3)
+        time.sleep(3)  # Задержка перед следующим обновлением
 
 if __name__ == '__main__':
     main()
