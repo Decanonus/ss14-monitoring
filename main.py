@@ -70,61 +70,65 @@ def get_server_stats():
     return None
 
 def main():
-    st.title("🚀 Статистика серверов SS14")
-
     if 'previous_stats' not in st.session_state:
         st.session_state.previous_stats = {}
 
+    st.title("🚀 Статистика серверов SS14")
+
     stats_container = st.empty()
     chart_container = st.empty()
-    last_update = time.time()
 
     while True:
-        current_time = time.time()
-        stats = get_server_stats()
+        try:
+            stats = get_server_stats()
+            current_time = time.time()
 
-        with stats_container.container():
-            if stats:
-                current_stats = {}
-                st.subheader(f"Данные о серверах (обновлено: {pd.Timestamp.now().strftime('%H:%M:%S')})")
-                
-                for row in reversed(stats):
-                    players = row['Игроки']
-                    server_name = row['Сервер']
-                    current_stats[server_name] = players
+            with stats_container.container():
+                if stats:
+                    current_stats = {}
+                    st.subheader(f"Данные о серверах (обновлено: {pd.Timestamp.now().strftime('%H:%M:%S')}")
                     
-                    style_class = (
-                        "high-players" if players >= 300 else
-                        "medium-players" if players >= 100 else
-                        "very-low-players" if players < 20 else
-                        "low-players"
-                    )
+                    for row in reversed(stats):
+                        players = row['Игроки']
+                        server_name = row['Сервер']
+                        current_stats[server_name] = players
+                        
+                        style_class = (
+                            "high-players" if players >= 300 else
+                            "medium-players" if players >= 100 else
+                            "very-low-players" if players < 20 else
+                            "low-players"
+                        )
+                        
+                        highlight_class = (
+                            "highlight-high" if (server_name in st.session_state.previous_stats and players >= 300 and players != st.session_state.previous_stats[server_name]) else
+                            "highlight-medium" if (server_name in st.session_state.previous_stats and players >= 100 and players != st.session_state.previous_stats[server_name]) else
+                            "highlight-low" if (server_name in st.session_state.previous_stats and 20 <= players < 100 and players != st.session_state.previous_stats[server_name]) else
+                            "highlight-very-low" if (server_name in st.session_state.previous_stats and players < 20 and players != st.session_state.previous_stats[server_name]) else
+                            ""
+                        )
+                        
+                        st.markdown(f"""
+                            <div class="metric-container {highlight_class} {style_class}">
+                                <div class="metric-label">{server_name}</div>
+                                <div class="metric-value">{players}</div>
+                            </div>
+                        """, unsafe_allow_html=True)
                     
-                    highlight_class = (
-                        "highlight-high" if (server_name in st.session_state.previous_stats and players >= 300 and players != st.session_state.previous_stats[server_name]) else
-                        "highlight-medium" if (server_name in st.session_state.previous_stats and players >= 100 and players != st.session_state.previous_stats[server_name]) else
-                        "highlight-low" if (server_name in st.session_state.previous_stats and 20 <= players < 100 and players != st.session_state.previous_stats[server_name]) else
-                        "highlight-very-low" if (server_name in st.session_state.previous_stats and players < 20 and players != st.session_state.previous_stats[server_name]) else
-                        ""
-                    )
-                    
-                    st.markdown(f"""
-                        <div class="metric-container {highlight_class} {style_class}">
-                            <div class="metric-label">{server_name}</div>
-                            <div class="metric-value">{players}</div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                
-                st.session_state.previous_stats = current_stats
+                    st.session_state.previous_stats = current_stats
 
-        with chart_container.container():
-            if stats:
-                df = pd.DataFrame(stats)
-                st.bar_chart(df.set_index('Сервер')['Игроки'])
+            with chart_container.container():
+                if stats:
+                    df = pd.DataFrame(stats)
+                    st.bar_chart(df.set_index('Сервер')['Игроки'])
 
-        sleep_time = max(0.1, 1.5 - (time.time() - last_update))
-        time.sleep(sleep_time)
-        last_update = time.time()
+        except Exception as e:
+            if "SessionInfo" in str(e):
+                time.sleep(1)
+                continue
+            raise
+
+        time.sleep(1.5)
 
 if __name__ == '__main__':
     main()
