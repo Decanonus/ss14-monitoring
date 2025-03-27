@@ -86,7 +86,7 @@ def main():
             with stats_container.container():
                 if stats:
                     current_stats = {}
-                    st.subheader(f"Данные о серверах (обновлено: {pd.Timestamp.now().strftime('%H:%M:%S')}")
+                    st.subheader(f"Данные о серверах: {pd.Timestamp.now().strftime('%H:%M:%S')}")
                     
                     for row in reversed(stats):
                         players = row['Игроки']
