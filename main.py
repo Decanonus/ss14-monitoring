@@ -7,7 +7,7 @@ import time
 st.set_page_config(page_title="SS14 Статистика серверов", page_icon="🚀", layout="centered")
 
 st.markdown("""<style>
-    .metric-container {padding:5px;border-radius:5px;margin:1px 0;width:100%;min-height:35px;display:flex;justify-content:space-between;align-items:center;}
+    .metric-container {padding:5px;border-radius:5px;margin:1px 0;width:100%;min-height:35px;display:flex;justify-content:space-between;align-items:center; transition: background-color 0.5s ease;} /* Добавлено плавное изменение цвета */
     .metric-label{font-size:12px;font-weight:bold;}
     .metric-value{font-size:16px;font-weight:bold;}
     .high-players{background-color:rgba(0,255,0,0.2);}
