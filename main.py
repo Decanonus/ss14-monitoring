@@ -1,53 +1,73 @@
 import streamlit as st
 import requests
-import json
 import pandas as pd
 import time
 
 st.set_page_config(page_title="SS14 Статистика серверов", page_icon="🚀", layout="centered")
 
 st.markdown("""<style>
-    .metric-container {padding:5px;border-radius:5px;margin:1px 0;width:100%;min-height:35px;display:flex;justify-content:space-between;align-items:center; transition: background-color 0.5s ease;} /* Добавлено плавное изменение цвета */
-    .metric-label{font-size:12px;font-weight:bold;}
-    .metric-value{font-size:16px;font-weight:bold;}
-    .high-players{background-color:rgba(0,255,0,0.2);}
-    .medium-players{background-color:rgba(255,255,0,0.2);}
-    .low-players{background-color:rgba(255,0,0,0.2);}
-    .very-low-players{background-color:black;}
-    .highlight-high{background-color:rgba(0,255,0,0.5);}
-    .highlight-medium{background-color:rgba(255,255,0,0.5);}
-    .highlight-low{background-color:rgba(255,0,0,0.5);}
-    .highlight-very-low{background-color:rgba(128,128,128,0.5);}
+    .metric-container {
+        padding:5px;
+        border-radius:5px;
+        margin:1px 0;
+        width:100%;
+        min-height:35px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        transition: all 0.3s ease;
+    }
+    .metric-label {
+        font-size:12px;
+        font-weight:bold;
+    }
+    .metric-value {
+        font-size:16px;
+        font-weight:bold;
+    }
+    .high-players { background-color:rgba(0,255,0,0.2); }
+    .medium-players { background-color:rgba(255,255,0,0.2); }
+    .low-players { background-color:rgba(255,0,0,0.2); }
+    .very-low-players { background-color:black; }
+    .highlight-high { background-color:rgba(0,255,0,0.5); }
+    .highlight-medium { background-color:rgba(255,255,0,0.5); }
+    .highlight-low { background-color:rgba(255,0,0,0.5); }
+    .highlight-very-low { background-color:rgba(128,128,128,0.5); }
 </style>""", unsafe_allow_html=True)
 
-@st.cache_data(ttl=10)
+@st.cache_data(ttl=1.5)
 def get_server_stats():
     try:
-        response = requests.get('https://hub.spacestation14.com/api/servers', timeout=5)
-        json_data = response.json()
-        
-        server_groups = {
-            'Корвакс': ['Corvax'], 'Санрайз': ['РЫБЬЯ','LUST','SUNRISE','FIRE'],
-            'Империал': ['Imperial'], 'Спейс Сторис': ['Stories'],
-            'Мёртвый Космос': ['МЁРТВЫЙ'], 'Резерв': ['Reserve'],
-            'Вайт Дрим': ['Giedi'], 'СС220': ['SS220'],
-            'Время Приключений': ['Время']
-        }
+        response = requests.get('https://hub.spacestation14.com/api/servers', timeout=1.5)
+        if response.status_code == 200:
+            json_data = response.json()
+            
+            server_groups = {
+                'Корвакс': ['Corvax'], 
+                'Санрайз': ['РЫБЬЯ','LUST','SUNRISE','FIRE'],
+                'Империал': ['Imperial'], 
+                'Спейс Сторис': ['Stories'],
+                'Мёртвый Космос': ['МЁРТВЫЙ'], 
+                'Резерв': ['Reserve'],
+                'Вайт Дрим': ['Giedi'], 
+                'СС220': ['SS220'],
+                'Время Приключений': ['Время']
+            }
 
-        stats = []
-        for group_name, keywords in server_groups.items():
-            total_players = sum(
-                server['statusData']['players']
-                for server in json_data
-                for keyword in keywords
-                if keyword in server['statusData']['name']
-            )
-            stats.append({'Сервер': group_name, 'Игроки': total_players})
-        
-        return sorted(stats, key=lambda x: x['Игроки'], reverse=False)
-    
+            stats = []
+            for group_name, keywords in server_groups.items():
+                total_players = sum(
+                    server['statusData']['players']
+                    for server in json_data
+                    for keyword in keywords
+                    if keyword in server['statusData']['name']
+                )
+                stats.append({'Сервер': group_name, 'Игроки': total_players})
+            
+            return sorted(stats, key=lambda x: x['Игроки'], reverse=False)
     except:
-        return None
+        pass
+    return None
 
 def main():
     st.title("🚀 Статистика серверов SS14")
@@ -56,14 +76,18 @@ def main():
         st.session_state.previous_stats = {}
 
     stats_container = st.empty()
+    chart_container = st.empty()
+    last_update = time.time()
 
     while True:
+        current_time = time.time()
         stats = get_server_stats()
 
         with stats_container.container():
             if stats:
                 current_stats = {}
-                st.subheader("Данные о серверах")
+                st.subheader(f"Данные о серверах (обновлено: {pd.Timestamp.now().strftime('%H:%M:%S')})")
+                
                 for row in reversed(stats):
                     players = row['Игроки']
                     server_name = row['Сервер']
@@ -93,7 +117,14 @@ def main():
                 
                 st.session_state.previous_stats = current_stats
 
-        time.sleep(1.4)
+        with chart_container.container():
+            if stats:
+                df = pd.DataFrame(stats)
+                st.bar_chart(df.set_index('Сервер')['Игроки'])
+
+        sleep_time = max(0.1, 1.5 - (time.time() - last_update))
+        time.sleep(sleep_time)
+        last_update = time.time()
 
 if __name__ == '__main__':
     main()
