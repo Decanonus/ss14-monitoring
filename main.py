@@ -18,10 +18,6 @@ st.markdown("""<style>
     .highlight-medium{background-color:rgba(255,255,0,0.5);}
     .highlight-low{background-color:rgba(255,0,0,0.5);}
     .highlight-very-low{background-color:rgba(128,128,128,0.5);}
-    .highlight-dark-high{background-color:rgba(0,255,0,0.3);}
-    .highlight-dark-medium{background-color:rgba(255,255,0,0.3);}
-    .highlight-dark-low{background-color:rgba(255,0,0,0.3);}
-    .highlight-dark-very-low{background-color:rgba(128,128,128,0.3);}
 </style>""", unsafe_allow_html=True)
 
 @st.cache_data(ttl=10)
@@ -81,14 +77,10 @@ def main():
                     )
                     
                     highlight_class = (
-                        "highlight-high" if (server_name in st.session_state.previous_stats and players > st.session_state.previous_stats[server_name]) else
-                        "highlight-medium" if (server_name in st.session_state.previous_stats and players > st.session_state.previous_stats[server_name]) else
-                        "highlight-low" if (server_name in st.session_state.previous_stats and players > st.session_state.previous_stats[server_name]) else
-                        "highlight-very-low" if (server_name in st.session_state.previous_stats and players > st.session_state.previous_stats[server_name]) else
-                        "highlight-dark-high" if (server_name in st.session_state.previous_stats and players < st.session_state.previous_stats[server_name]) else
-                        "highlight-dark-medium" if (server_name in st.session_state.previous_stats and players < st.session_state.previous_stats[server_name]) else
-                        "highlight-dark-low" if (server_name in st.session_state.previous_stats and players < st.session_state.previous_stats[server_name]) else
-                        "highlight-dark-very-low" if (server_name in st.session_state.previous_stats and players < st.session_state.previous_stats[server_name]) else
+                        "highlight-high" if (server_name in st.session_state.previous_stats and players >= 300 and players != st.session_state.previous_stats[server_name]) else
+                        "highlight-medium" if (server_name in st.session_state.previous_stats and players >= 100 and players != st.session_state.previous_stats[server_name]) else
+                        "highlight-low" if (server_name in st.session_state.previous_stats and 20 <= players < 100 and players != st.session_state.previous_stats[server_name]) else
+                        "highlight-very-low" if (server_name in st.session_state.previous_stats and players < 20 and players != st.session_state.previous_stats[server_name]) else
                         ""
                     )
                     
