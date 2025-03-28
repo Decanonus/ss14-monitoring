@@ -15,7 +15,7 @@ st.markdown("""<style>
         display:flex;
         justify-content:space-between;
         align-items:center;
-        transition: all 0.3s ease;
+        transition: background-color 0.2s ease;
     }
     .metric-label {
         font-size:12px;
@@ -28,15 +28,13 @@ st.markdown("""<style>
     .high-players { background-color:rgba(0,255,0,0.2); }
     .medium-players { background-color:rgba(255,255,0,0.2); }
     .low-players { background-color:rgba(255,0,0,0.2); }
-    .very-low-players { background-color:black; }
-    .highlight-high { background-color:rgba(0,255,0,0.5); }
-    .highlight-medium { background-color:rgba(255,255,0,0.5); }
-    .highlight-low { background-color:rgba(255,0,0,0.5); }
-    .highlight-very-low { background-color:rgba(128,128,128,0.5); }
-    .table-container {
-        display: flex;
-        justify-content: space-between;
-    }
+    .very-low-players { background-color:rgba(0, 0, 0, 0.2); }
+    
+    /* Интенсивные версии цветов для подсветки */
+    .high-players.highlight { background-color:rgba(0,255,0,0.5); }
+    .medium-players.highlight { background-color:rgba(255,255,0,0.5); }
+    .low-players.highlight { background-color:rgba(255,0,0,0.5); }
+    .very-low-players.highlight { background-color:rgba(0,0,0,0.5); }
 </style>""", unsafe_allow_html=True)
 
 @st.cache_data(ttl=1.5)
@@ -76,13 +74,14 @@ def get_server_stats():
     return None
 
 def main():
-    if 'previous_stats' not in st.session_state:
-        st.session_state.previous_stats = {}
-
     st.title("🚀 Статистика серверов SS14")
 
-
     stats_container = st.empty()
+    previous_data = {
+        'players': {group: 0 for group in ['Корвакс', 'Санрайз', 'Империал', 'Спейс Сторис', 'Мёртвый Космос', 'Резерв', 'Вайт Дрим', 'СС220', 'Время Приключений']},
+        'ratio': {group: 0 for group in ['Корвакс', 'Санрайз', 'Империал', 'Спейс Сторис', 'Мёртвый Космос', 'Резерв', 'Вайт Дрим', 'СС220', 'Время Приключений']},
+        'rating': {group: 0 for group in ['Корвакс', 'Санрайз', 'Империал', 'Спейс Сторис', 'Мёртвый Космос', 'Резерв', 'Вайт Дрим', 'СС220', 'Время Приключений']}
+    }
 
     while True:
         try:
@@ -90,19 +89,17 @@ def main():
             current_time = time.time()
 
             if stats:
-                current_stats = {}
                 stats_container.empty()  
 
-                # Создаем контейнер для двух таблиц
                 with stats_container.container():
-                    col1, col2 = st.columns(2)
+                    col1, col2, col3 = st.columns(3)
 
+                    # Колонка с количеством игроков
                     with col1:
-                        st.subheader(f"Данные о серверах (Суммарный онлайн): {pd.Timestamp.now().strftime('%H:%M:%S')}")
+                        st.subheader(f"Сумма: {pd.Timestamp.now().strftime('%H:%M:%S')}")
                         for row in reversed(stats):
                             players = row['Игроки']
                             server_name = row['Сервер']
-                            current_stats[server_name] = players
                             
                             style_class = (
                                 "high-players" if players >= 300 else
@@ -111,20 +108,23 @@ def main():
                                 "low-players"
                             )
                             
+                            highlight_class = 'highlight' if players != previous_data['players'][server_name] else ''
+                            previous_data['players'][server_name] = players
+                            
                             st.markdown(f"""
-                                <div class="metric-container {style_class}">
+                                <div class="metric-container {style_class} {highlight_class}">
                                     <div class="metric-label">{server_name}</div>
                                     <div class="metric-value">{players}</div>
                                 </div>
                             """, unsafe_allow_html=True)
 
+                    # Колонка с коэффициентами
                     with col2:
-                        st.subheader(f"Данные о серверах (Коэффициенты): {pd.Timestamp.now().strftime('%H:%M:%S')}")
+                        st.subheader(f"Коэф: {pd.Timestamp.now().strftime('%H:%M:%S')}")
                         for row in sorted(stats, key=lambda x: x['Коэффициент'], reverse=True):  
                             player_ratio = row['Коэффициент']
                             server_name = row['Сервер']
                             
-                        
                             ratio_style_class = (
                                 "high-players" if player_ratio >= 60 else
                                 "medium-players" if player_ratio >= 40 else
@@ -132,14 +132,46 @@ def main():
                                 "low-players"
                             )
                             
+                            highlight_class = 'highlight' if player_ratio != previous_data['ratio'][server_name] else ''
+                            previous_data['ratio'][server_name] = player_ratio
+                            
                             st.markdown(f"""
-                                <div class="metric-container {ratio_style_class}">
+                                <div class="metric-container {ratio_style_class} {highlight_class}">
                                     <div class="metric-label">{server_name}</div>
                                     <div class="metric-value">{player_ratio:.2f}</div>
                                 </div>
                             """, unsafe_allow_html=True)
 
-                st.session_state.previous_stats = current_stats
+                    # Колонка с рейтингом
+                    with col3:
+                        st.subheader(f"Вес: {pd.Timestamp.now().strftime('%H:%M:%S')}")
+                        rating_stats = [
+                            {
+                                'Сервер': row['Сервер'],
+                                'Рейтинг': 0.7 * row['Игроки'] + 0.3 * row['Коэффициент']
+                            }
+                            for row in stats
+                        ]
+                        for row in sorted(rating_stats, key=lambda x: x['Рейтинг'], reverse=True):
+                            rating = row['Рейтинг']
+                            server_name = row['Сервер']
+                            
+                            rating_style_class = (
+                                "high-players" if rating >= 290 else
+                                "medium-players" if rating >= 100 else
+                                "very-low-players" if rating < 40 else
+                                "low-players"
+                            )
+                            
+                            highlight_class = 'highlight' if rating != previous_data['rating'][server_name] else ''
+                            previous_data['rating'][server_name] = rating
+                            
+                            st.markdown(f"""
+                                <div class="metric-container {rating_style_class} {highlight_class}">
+                                    <div class="metric-label">{server_name}</div>
+                                    <div class="metric-value">{rating:.2f}</div>
+                                </div>
+                            """, unsafe_allow_html=True)
 
         except Exception as e:
             if "SessionInfo" in str(e):
