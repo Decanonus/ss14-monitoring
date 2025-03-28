@@ -144,7 +144,7 @@ def main():
 
                     # Колонка с рейтингом
                     with col3:
-                        st.subheader(f"Вес: {pd.Timestamp.now().strftime('%H:%M:%S')}")
+                        st.subheader(f"Рейт: {pd.Timestamp.now().strftime('%H:%M:%S')}")
                         rating_stats = [
                             {
                                 'Сервер': row['Сервер'],
