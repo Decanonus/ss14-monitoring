@@ -1,3 +1,4 @@
+
 import streamlit as st
 import requests
 import pandas as pd
@@ -97,14 +98,13 @@ def main():
                     # Колонка с количеством игроков
                     with col1:
                         st.subheader(f"Сумма: {pd.Timestamp.now().strftime('%H:%M:%S')}")
-                        for row in reversed(stats):
+                        for index, row in enumerate(reversed(stats)):
                             players = row['Игроки']
                             server_name = row['Сервер']
                             
                             style_class = (
-                                "high-players" if players >= 300 else
-                                "medium-players" if players >= 100 else
-                                "very-low-players" if players < 20 else
+                                "high-players" if index < 3 else
+                                "medium-players" if index < 6 else
                                 "low-players"
                             )
                             
@@ -121,14 +121,13 @@ def main():
                     # Колонка с коэффициентами
                     with col2:
                         st.subheader(f"Коэф: {pd.Timestamp.now().strftime('%H:%M:%S')}")
-                        for row in sorted(stats, key=lambda x: x['Коэффициент'], reverse=True):  
+                        for index, row in enumerate(sorted(stats, key=lambda x: x['Коэффициент'], reverse=True)):  
                             player_ratio = row['Коэффициент']
                             server_name = row['Сервер']
                             
                             ratio_style_class = (
-                                "high-players" if player_ratio >= 60 else
-                                "medium-players" if player_ratio >= 40 else
-                                "very-low-players" if player_ratio < 20 else
+                                "high-players" if index < 3 else
+                                "medium-players" if index < 6 else
                                 "low-players"
                             )
                             
@@ -152,14 +151,13 @@ def main():
                             }
                             for row in stats
                         ]
-                        for row in sorted(rating_stats, key=lambda x: x['Рейтинг'], reverse=True):
+                        for index, row in enumerate(sorted(rating_stats, key=lambda x: x['Рейтинг'], reverse=True)):
                             rating = row['Рейтинг']
                             server_name = row['Сервер']
                             
                             rating_style_class = (
-                                "high-players" if rating >= 290 else
-                                "medium-players" if rating >= 100 else
-                                "very-low-players" if rating < 40 else
+                                "high-players" if index < 3 else
+                                "medium-players" if index < 6 else
                                 "low-players"
                             )
                             
