@@ -136,7 +136,7 @@ def main():
                     if corvaxcraft_online is not None:
                         st.markdown(f"""
                             <div class="metric-container purple-server highlight">
-                                <div class="metric-label">CorvaxCraft</div>
+                                <div class="metric-label">Корвакс Крафт</div>
                                 <div class="metric-value">{corvaxcraft_online}</div>
                             </div>
                         """, unsafe_allow_html=True)
