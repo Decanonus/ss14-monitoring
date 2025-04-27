@@ -93,7 +93,7 @@ def main():
 
     stats_container = st.empty()
     previous_data = {
-        'players': {group: 0 for group in ['Корвакс', 'Санрайз', 'Империал', 'Спейс Сторис', 'Мёртвый Космос', 'Резерв', 'Парсек', 'СС220', 'Время Приключений']}
+        'players': {group: 0 for group in ['Корвакс', 'Санрайз', 'Империал', 'Спейс Сторис', 'Мёртвый Космос', 'Резерв', 'Парсек', 'СС220', 'Время Приключений', 'Корвакс Крафт']}
     }
 
     corvaxcraft_online = None
@@ -113,31 +113,43 @@ def main():
 
                 with stats_container.container():
                     st.subheader(f"Сумма: {pd.Timestamp.now().strftime('%H:%M:%S')}")
-                    for index, row in enumerate(reversed(stats)):
+                    
+                    # Создаем копию статистики для сортировки
+                    all_servers = list(reversed(stats))
+                    
+                    # Добавляем Корвакс Крафт в общий список, если есть данные
+                    if corvaxcraft_online is not None:
+                        all_servers.append({
+                            'Сервер': 'Корвакс Крафт',
+                            'Игроки': corvaxcraft_online
+                        })
+                    
+                    # Сортируем все серверы по количеству игроков
+                    all_servers.sort(key=lambda x: x['Игроки'], reverse=True)
+                    
+                    for index, row in enumerate(all_servers):
                         players = row['Игроки']
                         server_name = row['Сервер']
                         
+                        # Определяем, является ли сервер Корвакс Крафтом
+                        is_corvaxcraft = server_name == 'Корвакс Крафт'
+                        
+                        # Применяем цветовой класс только если это не Корвакс Крафт
                         style_class = (
+                            "purple-server" if is_corvaxcraft else
                             "high-players" if index < 3 else
                             "medium-players" if index < 6 else
                             "low-players"
                         )
                         
                         highlight_class = 'highlight' if players != previous_data['players'][server_name] else ''
+                        previous_data['players'].setdefault(server_name, 0)
                         previous_data['players'][server_name] = players
                         
                         st.markdown(f"""
                             <div class="metric-container {style_class} {highlight_class}">
                                 <div class="metric-label">{server_name}</div>
                                 <div class="metric-value">{players}</div>
-                            </div>
-                        """, unsafe_allow_html=True)
-
-                    if corvaxcraft_online is not None:
-                        st.markdown(f"""
-                            <div class="metric-container purple-server highlight">
-                                <div class="metric-label">Корвакс Крафт</div>
-                                <div class="metric-value">{corvaxcraft_online}</div>
                             </div>
                         """, unsafe_allow_html=True)
 
