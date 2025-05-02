@@ -94,10 +94,20 @@ def get_adult_servers_stats():
         if response.status_code == 200:
             request = response.json()
             
-            servers_18plus = [server for server in request 
-                            if '18+' in server['statusData'].get('tags', [])]
-            servers_non_18plus = [server for server in request 
-                                if '18+' not in server['statusData'].get('tags', [])]
+            def is_18plus(server):
+                status = server.get('statusData', {})
+                # Проверяем tags, name и inferredTags
+                tags = status.get('tags', [])
+                inferred = status.get('inferredTags', [])
+                name = status.get('name', '')
+                return (
+                    '18+' in tags or
+                    '18+' in inferred or
+                    '18+' in name
+                )
+
+            servers_18plus = [server for server in request if is_18plus(server)]
+            servers_non_18plus = [server for server in request if not is_18plus(server)]
 
             players_18plus = sum(server['statusData']['players'] for server in servers_18plus)
             players_non_18plus = sum(server['statusData']['players'] for server in servers_non_18plus)
