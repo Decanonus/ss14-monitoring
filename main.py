@@ -45,9 +45,12 @@ st.markdown("""<style>
         padding: 15px;
         border-radius: 10px;
         margin: 5px;
+        transition: background-color 0.2s ease;
     }
     .adult-stats { background-color: rgba(255,192,203,0.2); }
     .normal-stats { background-color: rgba(144,238,144,0.2); }
+    .adult-stats.highlight { background-color: rgba(255,192,203,0.5); }
+    .normal-stats.highlight { background-color: rgba(144,238,144,0.5); }
 </style>""", unsafe_allow_html=True)
 
 @st.cache_data(ttl=1.5)
@@ -91,23 +94,19 @@ def get_adult_servers_stats():
         if response.status_code == 200:
             request = response.json()
             
-            # Получаем списки серверов с 18+ и без
             servers_18plus = [server for server in request 
                             if '18+' in server['statusData'].get('tags', [])]
             servers_non_18plus = [server for server in request 
                                 if '18+' not in server['statusData'].get('tags', [])]
 
-            # Подсчет общего количества игроков
             players_18plus = sum(server['statusData']['players'] for server in servers_18plus)
             players_non_18plus = sum(server['statusData']['players'] for server in servers_non_18plus)
 
-            # Подсчет активных серверов
             active_servers_18plus = sum(1 for server in servers_18plus 
                                       if server['statusData']['players'] > 0)
             active_servers_non_18plus = sum(1 for server in servers_non_18plus 
                                           if server['statusData']['players'] > 0)
 
-            # Подсчет среднего количества игроков
             avg_players_18plus = (players_18plus / active_servers_18plus 
                                 if active_servers_18plus > 0 else 0)
             avg_players_non_18plus = (players_non_18plus / active_servers_non_18plus 
@@ -149,10 +148,19 @@ def main():
         adult_stats_card = age_stats_columns[0].empty()
         normal_stats_card = age_stats_columns[1].empty()
 
+    # Расширяем словарь для хранения предыдущих значений
     previous_data = {
         'players': {group: 0 for group in ['Корвакс', 'Санрайз', 'Империал', 'Спейс Сторис', 
                                          'Мёртвый Космос', 'Резерв', 'Парсек', 'СС220', 
-                                         'Время Приключений', 'Корвакс Крафт']}
+                                         'Время Приключений', 'Корвакс Крафт']},
+        'adult_stats': {
+            'players_18plus': 0,
+            'players_non_18plus': 0,
+            'active_servers_18plus': 0,
+            'active_servers_non_18plus': 0,
+            'avg_players_18plus': 0,
+            'avg_players_non_18plus': 0
+        }
     }
 
     corvaxcraft_online = None
@@ -169,7 +177,6 @@ def main():
                 last_corvaxcraft_update = current_time
 
             if stats:
-                # Обновляем заголовок
                 header.subheader(f"Сумма: {pd.Timestamp.now().strftime('%H:%M:%S')}")
                 
                 all_servers = list(reversed(stats))
@@ -205,16 +212,29 @@ def main():
                         </div>
                     """
                 
-                # Обновляем список серверов одним блоком
                 servers_list.markdown(servers_html, unsafe_allow_html=True)
 
                 if adult_stats:
                     separator.markdown("---")
                     age_stats_header.subheader("Статистика 18+ и не 18+ серверов")
                     
-                    # Обновляем карточки статистики
+                    # Проверяем изменения для 18+ статистики
+                    adult_highlight = any(
+                        adult_stats[key] != previous_data['adult_stats'][key]
+                        for key in ['players_18plus', 'active_servers_18plus', 'avg_players_18plus']
+                    )
+                    
+                    # Проверяем изменения для не 18+ статистики
+                    normal_highlight = any(
+                        adult_stats[key] != previous_data['adult_stats'][key]
+                        for key in ['players_non_18plus', 'active_servers_non_18plus', 'avg_players_non_18plus']
+                    )
+                    
+                    # Обновляем предыдущие значения
+                    previous_data['adult_stats'].update(adult_stats)
+                    
                     adult_stats_card.markdown(f"""
-                        <div class="stats-card adult-stats">
+                        <div class="stats-card adult-stats {'highlight' if adult_highlight else ''}">
                             <h4>Серверы 18+</h4>
                             <p>
                                 🎮 Игроков: {adult_stats['players_18plus']}<br>
@@ -225,7 +245,7 @@ def main():
                     """, unsafe_allow_html=True)
                     
                     normal_stats_card.markdown(f"""
-                        <div class="stats-card normal-stats">
+                        <div class="stats-card normal-stats {'highlight' if normal_highlight else ''}">
                             <h4>Серверы не 18+</h4>
                             <p>
                                 🎮 Игроков: {adult_stats['players_non_18plus']}<br>
