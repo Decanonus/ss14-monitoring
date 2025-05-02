@@ -138,10 +138,8 @@ def get_corvaxcraft_online():
 def main():
     st.title("🚀 Статистика серверов SS14")
 
-    # Создаем основной контейнер для всего содержимого
     main_container = st.container()
     
-    # Создаем подконтейнеры для каждой секции один раз
     with main_container:
         header = st.empty()
         servers_list = st.empty()
@@ -182,7 +180,6 @@ def main():
                     })
                 all_servers.sort(key=lambda x: x['Игроки'], reverse=True)
                 
-                # Формируем HTML для всех серверов
                 servers_html = ""
                 for index, row in enumerate(all_servers):
                     players = row['Игроки']
@@ -212,7 +209,6 @@ def main():
                 servers_list.markdown(servers_html, unsafe_allow_html=True)
 
                 if adult_stats:
-                    # Обновляем разделитель и заголовок статистики
                     separator.markdown("---")
                     age_stats_header.subheader("Статистика 18+ и не 18+ серверов")
                     
