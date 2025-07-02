@@ -62,7 +62,7 @@ def get_server_stats():
             
             server_groups = {
                 'Корвакс': ['Corvax'], 
-                'Санрайз': ['РЫБЬЯ','LUST','SUNRISE','FIRE'],
+                'Санрайз': ['РЫБЬЯ','LUST','SUNRISE','FIRE', 'PRIME'],
                 'Империал': ['Imperial'], 
                 'Спейс Сторис': ['Stories'],
                 'Мёртвый Космос': ['МЁРТВЫЙ'], 
